@@ -19,7 +19,14 @@ async function initializeDatabase() {
   `);
 
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email VARCHAR(255)`);
-  await pool.query(`ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email) DEFERRABLE INITIALLY DEFERRED`);
+
+  try {
+    await pool.query(`ALTER TABLE users ADD CONSTRAINT users_email_key UNIQUE (email) DEFERRABLE INITIALLY DEFERRED`);
+  } catch (error) {
+    if (!error.message.includes('already exists')) {
+      throw error;
+    }
+  }
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS folders (
