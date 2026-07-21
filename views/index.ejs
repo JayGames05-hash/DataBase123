@@ -46,7 +46,7 @@
           <h2>New Folder</h2>
           <form method="post" action="/folders" class="inline-form">
             <input name="name" placeholder="Folder name" required />
-            <% if (currentFolder) { %>
+            <% if (typeof currentFolder !== 'undefined' && currentFolder) { %>
               <input type="hidden" name="parent_id" value="<%= currentFolder.id %>" />
             <% } %>
             <button type="submit">Create</button>
@@ -57,7 +57,7 @@
       <section class="card">
         <div class="section-head">
           <h2>Folders</h2>
-          <% if (parentFolder) { %>
+          <% if (typeof parentFolder !== 'undefined' && parentFolder) { %>
             <a href="/?folder=<%= parentFolder.id %>">Back</a>
           <% } %>
         </div>

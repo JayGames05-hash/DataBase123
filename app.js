@@ -81,6 +81,8 @@ app.get('/', async (req, res) => {
         files: [],
         folders: [],
         currentFolder: null,
+        parentFolder: null,
+        storageStats: { usedBytes: 0, fileCount: 0 },
         error: `Database connection is not ready. ${dbError || 'Set DATABASE_URL to a valid PostgreSQL connection string and restart the app.'}`
       });
     }
