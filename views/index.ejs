@@ -127,7 +127,15 @@
         <!-- Files List -->
         <section class="files-section">
           <div class="section-header">
-            <h3><%= currentFolder ? currentFolder.name : 'All files' %></h3>
+            <div>
+              <h3><%= currentFolder ? currentFolder.name : 'All files' %></h3>
+              <p class="filter-indicator">
+                <% if (sort === 'recent') { %>Recent uploads<% } %>
+                <% if (sort === 'shared') { %>Shared with you<% } %>
+                <% if (type === 'doc') { %>Documents only<% } %>
+                <% if (type === 'image') { %>Images only<% } %>
+              </p>
+            </div>
             <% if (user) { %>
               <a href="/upload" class="link-action">Upload files</a>
             <% } %>
