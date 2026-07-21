@@ -7,137 +7,179 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <div class="shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="brand-mark">☁</div>
-        <div>
-          <h1><%= siteName %></h1>
-          <p>Secure workspace</p>
+  <div class="app-shell">
+    <!-- Top Navigation Bar -->
+    <div class="top-bar">
+      <div class="top-bar-left">
+        <div class="logo">
+          <span class="logo-icon">☁</span>
+          <span class="logo-text"><%= siteName %></span>
         </div>
       </div>
-
-      <% if (user) { %>
-        <div class="profile-card">
-          <div class="profile-header">
-            <div class="avatar"><%= user.username.charAt(0).toUpperCase() %></div>
-            <div>
-              <h3><%= user.username %></h3>
-              <p><%= user.role %></p>
+      <div class="top-bar-center">
+        <div class="search-box">
+          <input type="text" placeholder="Search your files" />
+          <span class="search-icon">🔍</span>
+        </div>
+      </div>
+      <div class="top-bar-right">
+        <% if (user) { %>
+          <div class="user-menu">
+            <div class="avatar-small"><%= user.username.charAt(0).toUpperCase() %></div>
+            <div class="user-info">
+              <span class="user-name"><%= user.username %></span>
+              <form method="post" action="/logout" class="logout-form">
+                <button type="submit">Sign out</button>
+              </form>
             </div>
           </div>
-          <div class="stats-grid">
-            <div>
-              <strong><%= (storageStats && storageStats.used_bytes ? (storageStats.used_bytes / (1024 * 1024)).toFixed(1) : '0.0') %> MB</strong>
-              <span>Used</span>
-            </div>
-            <div>
-              <strong><%= storageStats && storageStats.file_count ? storageStats.file_count : 0 %></strong>
-              <span>Files</span>
-            </div>
-          </div>
-          <div class="actions">
-            <a class="btn primary" href="/upload">Upload</a>
-            <% if (user.role === 'admin') { %>
-              <a class="btn secondary" href="/admin">Admin</a>
-            <% } %>
-            <form method="post" action="/logout">
-              <button type="submit">Sign out</button>
-            </form>
-          </div>
-        </div>
-      <% } else { %>
-        <div class="profile-card">
-          <p>Sign in to upload, organize, and manage your files in a polished private workspace.</p>
-          <div class="actions">
-            <a class="btn primary" href="/login">Login</a>
-            <a class="btn secondary" href="/register">Create account</a>
-          </div>
-        </div>
-      <% } %>
-    </aside>
-
-    <main class="content">
-      <% if (error) { %>
-        <div class="alert"><%= error %></div>
-      <% } %>
-
-      <% if (user) { %>
-        <section class="hero-card">
-          <div>
-            <h2>Create a folder</h2>
-            <p>Keep your workspace organized with folders for projects, clients, or media.</p>
-          </div>
-          <form method="post" action="/folders" class="inline-form">
-            <input name="name" placeholder="Folder name" required />
-            <% if (typeof currentFolder !== 'undefined' && currentFolder) { %>
-              <input type="hidden" name="parent_id" value="<%= currentFolder.id %>" />
-            <% } %>
-            <button type="submit">Create folder</button>
-          </form>
-        </section>
-      <% } %>
-
-      <section class="panel">
-        <div class="section-head">
-          <div>
-            <h2>Folders</h2>
-            <p>Navigate your collections</p>
-          </div>
-          <div class="nav-links">
-            <a class="plain-link" href="/">Home</a>
-            <% if (typeof parentFolder !== 'undefined' && parentFolder) { %>
-              <a class="plain-link" href="/?folder=<%= parentFolder.id %>">Up one level</a>
-            <% } %>
-          </div>
-        </div>
-
-        <% if (folders.length === 0) { %>
-          <div class="empty-state">No folders yet. Create one to get started.</div>
         <% } else { %>
-          <div class="grid">
-            <% folders.forEach(folder => { %>
-              <a class="item folder-item" href="/?folder=<%= folder.id %>">
-                <div class="item-icon">📁</div>
-                <strong><%= folder.name %></strong>
-                <span>Open folder</span>
-              </a>
-            <% }) %>
-          </div>
+          <a href="/login" class="btn-small">Login</a>
+          <a href="/register" class="btn-small">Sign up</a>
         <% } %>
-      </section>
+      </div>
+    </div>
 
-      <section class="panel">
-        <div class="section-head">
-          <div>
-            <h2>Files</h2>
-            <p>Recent uploads and accessible content</p>
-          </div>
+    <div class="main-layout">
+      <!-- Left Sidebar Navigation -->
+      <aside class="sidebar-nav">
+        <div class="nav-section">
+          <a href="/" class="nav-item <%= !currentFolder ? 'active' : '' %>">🏠 Home</a>
+          <a href="/?sort=recent" class="nav-item">⏱ Recent</a>
+          <a href="/?sort=shared" class="nav-item">👥 Shared</a>
+        </div>
+        
+        <div class="nav-section">
+          <div class="nav-label">Browse by</div>
+          <a href="/?type=all" class="nav-item">📋 All</a>
+          <a href="/?type=folder" class="nav-item">📁 Folders</a>
+          <a href="/?type=doc" class="nav-item">📄 Documents</a>
+          <a href="/?type=image" class="nav-item">🖼 Images</a>
+        </div>
+
+        <div class="nav-section" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e5e5;">
           <% if (user) { %>
-            <a class="plain-link" href="/upload">Upload files</a>
+            <a href="/upload" class="btn-primary">+ Add new</a>
+            <% if (user.role === 'admin') { %>
+              <a href="/admin" class="nav-item">⚙ Admin</a>
+            <% } %>
           <% } %>
         </div>
+      </aside>
 
-        <% if (files.length === 0) { %>
-          <div class="empty-state">No files in this folder yet.</div>
-        <% } else { %>
-          <div class="grid">
-            <% files.forEach(file => { %>
-              <div class="item file-item">
-                <div class="item-icon">📄</div>
-                <strong><%= file.title %></strong>
-                <span><%= file.original_name %></span>
-                <span class="muted">Visibility: <%= file.visibility %></span>
-                <div class="mini-actions">
-                  <a href="/files/<%= file.id %>">View</a>
-                  <a href="/download/<%= file.id %>">Download</a>
-                </div>
-              </div>
-            <% }) %>
+      <!-- Main Content Area -->
+      <main class="content-area">
+        <% if (error) { %>
+          <div class="alert alert-error"><%= error %></div>
+        <% } %>
+
+        <% if (user && currentFolder) { %>
+          <div class="breadcrumb">
+            <a href="/">My files</a>
+            <span class="sep">›</span>
+            <span class="current"><%= currentFolder.name %></span>
           </div>
         <% } %>
-      </section>
-    </main>
+
+        <!-- For You Section (Recommendations) -->
+        <% if (user && !currentFolder) { %>
+          <section class="for-you-section">
+            <div class="for-you-header">
+              <div>
+                <h2>For you</h2>
+                <p>Quick access to your key files</p>
+              </div>
+              <div class="create-form">
+                <form method="post" action="/folders" class="quick-form">
+                  <input type="text" name="name" placeholder="New folder name" required />
+                  <button type="submit">Create folder</button>
+                </form>
+              </div>
+            </div>
+            <div class="for-you-grid">
+              <% if (folders && folders.length > 0) { %>
+                <% folders.slice(0, 6).forEach(folder => { %>
+                  <a href="/?folder=<%= folder.id %>" class="rec-card">
+                    <div class="rec-icon">📁</div>
+                    <div class="rec-name"><%= folder.name %></div>
+                  </a>
+                <% }) %>
+              <% } %>
+              <% if (files && files.length > 0) { %>
+                <% files.slice(0, Math.max(0, 6 - (folders ? folders.length : 0))).forEach(file => { %>
+                  <a href="/files/<%= file.id %>" class="rec-card">
+                    <div class="rec-icon">📄</div>
+                    <div class="rec-name"><%= file.title %></div>
+                  </a>
+                <% }) %>
+              <% } %>
+            </div>
+          </section>
+        <% } %>
+
+        <!-- Files List -->
+        <section class="files-section">
+          <div class="section-header">
+            <h3><%= currentFolder ? currentFolder.name : 'All files' %></h3>
+            <% if (user) { %>
+              <a href="/upload" class="link-action">Upload files</a>
+            <% } %>
+          </div>
+
+          <% if (folders && folders.length > 0) { %>
+            <div class="list-section">
+              <h4 class="list-title">Folders</h4>
+              <div class="items-list">
+                <% folders.forEach(folder => { %>
+                  <a href="/?folder=<%= folder.id %>" class="list-item">
+                    <div class="item-icon">📁</div>
+                    <div class="item-name"><%= folder.name %></div>
+                  </a>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
+
+          <% if (files && files.length > 0) { %>
+            <div class="list-section">
+              <h4 class="list-title">Files</h4>
+              <div class="files-table">
+                <div class="table-header">
+                  <div class="col-name">Name</div>
+                  <div class="col-modified">Modified</div>
+                  <div class="col-owner">Owner</div>
+                  <div class="col-size">Size</div>
+                  <div class="col-actions">Actions</div>
+                </div>
+                <% files.forEach(file => { %>
+                  <div class="table-row">
+                    <div class="col-name">
+                      <span class="file-icon">📄</span>
+                      <span><%= file.title %></span>
+                    </div>
+                    <div class="col-modified"><%= new Date(file.created_at).toLocaleDateString() %></div>
+                    <div class="col-owner"><%= file.owner_name %></div>
+                    <div class="col-size"><%= (file.size / 1024).toFixed(1) %> KB</div>
+                    <div class="col-actions">
+                      <a href="/files/<%= file.id %>" class="action-link">View</a>
+                      <a href="/download/<%= file.id %>" class="action-link">Download</a>
+                    </div>
+                  </div>
+                <% }) %>
+              </div>
+            </div>
+          <% } %>
+
+          <% if ((!folders || folders.length === 0) && (!files || files.length === 0)) { %>
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <h3>Nothing here yet</h3>
+              <p><% if (user) { %>Create a folder or upload files to get started.<% } else { %>Sign in to see your files.<% } %></p>
+            </div>
+          <% } %>
+        </section>
+      </main>
+    </div>
   </div>
 </body>
 </html>
