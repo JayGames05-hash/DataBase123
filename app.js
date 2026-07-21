@@ -395,6 +395,84 @@ app.get('/download/:id', async (req, res) => {
   }
 });
 
+app.post('/share/:fileId', requireAuth, async (req, res) => {
+  try {
+    await bootstrapDatabase();
+    const fileId = req.params.fileId;
+    const { visibility, email } = req.body;
+
+    // Check ownership
+    const fileResult = await pool.query('SELECT owner_id FROM files WHERE id = $1', [fileId]);
+    if (fileResult.rowCount === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    if (fileResult.rows[0].owner_id !== req.session.user.id) {
+      return res.status(403).json({ error: 'You can only share your own files' });
+    }
+
+    // Update visibility if provided
+    if (visibility && ['public', 'private'].includes(visibility)) {
+      await pool.query('UPDATE files SET visibility = $1 WHERE id = $2', [visibility, fileId]);
+    }
+
+    // Share with specific user if email provided
+    if (email) {
+      const userResult = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+      if (userResult.rowCount === 0) {
+        return res.status(400).json({ error: 'User not found' });
+      }
+
+      const sharedUserId = userResult.rows[0].id;
+      if (sharedUserId === req.session.user.id) {
+        return res.status(400).json({ error: 'Cannot share with yourself' });
+      }
+
+      try {
+        await pool.query(
+          'INSERT INTO shares (file_id, shared_with_user_id, permission) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING',
+          [fileId, sharedUserId, 'view']
+        );
+      } catch (err) {
+        // Ignore duplicate key error
+      }
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/file/:id/shares', requireAuth, async (req, res) => {
+  try {
+    await bootstrapDatabase();
+    const fileId = req.params.id;
+
+    // Check ownership
+    const fileResult = await pool.query('SELECT owner_id, visibility FROM files WHERE id = $1', [fileId]);
+    if (fileResult.rowCount === 0) {
+      return res.status(404).json({ error: 'File not found' });
+    }
+
+    if (fileResult.rows[0].owner_id !== req.session.user.id) {
+      return res.status(403).json({ error: 'You can only see shares for your own files' });
+    }
+
+    const visibility = fileResult.rows[0].visibility;
+    const sharesResult = await pool.query(
+      'SELECT u.id, u.username, u.email, s.permission FROM shares s JOIN users u ON s.shared_with_user_id = u.id WHERE s.file_id = $1',
+      [fileId]
+    );
+
+    res.json({ visibility, shares: sharesResult.rows });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);
 });

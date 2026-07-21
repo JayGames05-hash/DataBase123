@@ -178,6 +178,9 @@
                     <div class="col-actions">
                       <a href="/files/<%= file.id %>" class="action-link">View</a>
                       <a href="/download/<%= file.id %>" class="action-link">Download</a>
+                      <% if (user && file.owner_id === user.id) { %>
+                        <a href="javascript:shareFile(<%= file.id %>, '<%= file.title %>')" class="action-link">Share</a>
+                      <% } %>
                     </div>
                   </div>
                 <% }) %>
@@ -196,5 +199,100 @@
       </main>
     </div>
   </div>
+
+  <!-- Share Modal -->
+  <div id="shareModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 id="shareTitle">Share File</h2>
+        <span class="modal-close" onclick="closeShareModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="share-option">
+          <label>Make it Public:</label>
+          <button onclick="toggleVisibility('public')" class="btn-toggle">Public Link</button>
+          <button onclick="toggleVisibility('private')" class="btn-toggle">Private</button>
+        </div>
+        <div class="share-option">
+          <label>Share with Email:</label>
+          <div class="share-form">
+            <input type="email" id="shareEmail" placeholder="user@example.com" />
+            <button onclick="shareWithUser()">Share</button>
+          </div>
+        </div>
+        <div id="sharesList" class="shares-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentFileId = null;
+    
+    function shareFile(fileId, fileName) {
+      currentFileId = fileId;
+      document.getElementById('shareTitle').textContent = 'Share: ' + fileName;
+      document.getElementById('shareModal').style.display = 'flex';
+      loadShares();
+    }
+    
+    function closeShareModal() {
+      document.getElementById('shareModal').style.display = 'none';
+      currentFileId = null;
+    }
+    
+    function toggleVisibility(visibility) {
+      fetch('/share/' + currentFileId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'visibility=' + visibility
+      })
+      .then(r => r.json())
+      .then(data => {
+        alert('File is now ' + visibility);
+        loadShares();
+      })
+      .catch(e => alert('Error: ' + e));
+    }
+    
+    function shareWithUser() {
+      const email = document.getElementById('shareEmail').value;
+      if (!email) return alert('Enter an email');
+      
+      fetch('/share/' + currentFileId, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'email=' + encodeURIComponent(email)
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return alert('Error: ' + data.error);
+        document.getElementById('shareEmail').value = '';
+        alert('Shared successfully!');
+        loadShares();
+      })
+      .catch(e => alert('Error: ' + e));
+    }
+    
+    function loadShares() {
+      fetch('/file/' + currentFileId + '/shares')
+      .then(r => r.json())
+      .then(data => {
+        let html = '<div class="share-status">Visibility: <strong>' + data.visibility + '</strong></div>';
+        if (data.shares && data.shares.length > 0) {
+          html += '<div class="share-list-title">Shared with:</div>';
+          data.shares.forEach(share => {
+            html += '<div class="share-item">' + share.email + ' (' + share.username + ')</div>';
+          });
+        }
+        document.getElementById('sharesList').innerHTML = html;
+      })
+      .catch(e => console.error(e));
+    }
+    
+    window.onclick = function(event) {
+      const modal = document.getElementById('shareModal');
+      if (event.target == modal) modal.style.display = 'none';
+    }
+  </script>
 </body>
 </html>
