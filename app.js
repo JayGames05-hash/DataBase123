@@ -76,6 +76,11 @@ app.get('/', async (req, res) => {
   try {
     await bootstrapDatabase();
 
+    const user = req.session.user || null;
+    const folderId = req.query.folder ? Number(req.query.folder) : null;
+    const sort = req.query.sort || 'home'; // home, recent, shared
+    const type = req.query.type || 'all'; // all, folder, doc, image
+
     if (!dbReady) {
       return res.render('index', {
         files: [],
@@ -83,12 +88,11 @@ app.get('/', async (req, res) => {
         currentFolder: null,
         parentFolder: null,
         storageStats: { usedBytes: 0, fileCount: 0 },
-        error: `Database connection is not ready. ${dbError || 'Set DATABASE_URL to a valid PostgreSQL connection string and restart the app.'}`
+        error: `Database connection is not ready. ${dbError || 'Set DATABASE_URL to a valid PostgreSQL connection string and restart the app.'}`,
+        sort,
+        type
       });
     }
-
-    const user = req.session.user || null;
-    const folderId = req.query.folder ? Number(req.query.folder) : null;
 
     let currentFolder = null;
     let folders = [];
@@ -111,13 +115,34 @@ app.get('/', async (req, res) => {
       }
     }
 
-    const filesResult = await pool.query(
-      'SELECT f.*, u.username AS owner_name FROM files f JOIN users u ON u.id = f.owner_id ORDER BY f.created_at DESC'
+    let filesResult;
+    let orderClause = 'ORDER BY f.created_at DESC';
+    
+    if (sort === 'recent') {
+      orderClause = 'ORDER BY f.created_at DESC';
+    } else if (sort === 'shared') {
+      orderClause = 'ORDER BY f.created_at DESC';
+    }
+
+    filesResult = await pool.query(
+      `SELECT f.*, u.username AS owner_name FROM files f JOIN users u ON u.id = f.owner_id ${orderClause}`
     );
 
-    const files = filesResult.rows
+    let files = filesResult.rows
       .filter((file) => canAccessFile(file, user))
       .filter((file) => (folderId ? file.folder_id === folderId : file.folder_id === null));
+
+    // Apply type filter
+    if (type === 'doc') {
+      files = files.filter(f => ['application/pdf', 'text/plain', 'application/msword', 'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'].includes(f.mime_type));
+    } else if (type === 'image') {
+      files = files.filter(f => f.mime_type.startsWith('image/'));
+    }
+
+    // Apply shared filter
+    if (sort === 'shared') {
+      files = files.filter(f => f.visibility !== 'private' || f.owner_id === (user ? user.id : null));
+    }
 
     let storageStats = { usedBytes: 0, fileCount: 0 };
     if (user) {
@@ -128,10 +153,12 @@ app.get('/', async (req, res) => {
       storageStats = storageResult.rows[0];
     }
 
-    res.render('index', { files, folders, currentFolder, parentFolder, storageStats, error: null });
+    res.render('index', { files, folders, currentFolder, parentFolder, storageStats, error: null, sort, type });
   } catch (error) {
     console.error(error);
-    res.render('index', { files: [], folders: [], currentFolder: null, parentFolder: null, storageStats: { usedBytes: 0, fileCount: 0 }, error: error.message });
+    const sort = req.query.sort || 'home';
+    const type = req.query.type || 'all';
+    res.render('index', { files: [], folders: [], currentFolder: null, parentFolder: null, storageStats: { usedBytes: 0, fileCount: 0 }, error: error.message, sort, type });
   }
 });
 

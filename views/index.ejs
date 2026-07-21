@@ -41,20 +41,27 @@
     </div>
 
     <div class="main-layout">
+      <%
+        var isHomeActive = !sort || sort === 'home';
+        var isRecentActive = sort === 'recent';
+        var isSharedActive = sort === 'shared';
+        var isAllActive = !type || type === 'all';
+        var isDocActive = type === 'doc';
+        var isImageActive = type === 'image';
+      %>
       <!-- Left Sidebar Navigation -->
       <aside class="sidebar-nav">
         <div class="nav-section">
-          <a href="/" class="nav-item <%= !currentFolder ? 'active' : '' %>">🏠 Home</a>
-          <a href="/?sort=recent" class="nav-item">⏱ Recent</a>
-          <a href="/?sort=shared" class="nav-item">👥 Shared</a>
+          <a href="/" class="nav-item <% if(isHomeActive) { %>active<% } %>">🏠 Home</a>
+          <a href="/?sort=recent" class="nav-item <% if(isRecentActive) { %>active<% } %>">⏱ Recent</a>
+          <a href="/?sort=shared" class="nav-item <% if(isSharedActive) { %>active<% } %>">👥 Shared</a>
         </div>
         
         <div class="nav-section">
           <div class="nav-label">Browse by</div>
-          <a href="/?type=all" class="nav-item">📋 All</a>
-          <a href="/?type=folder" class="nav-item">📁 Folders</a>
-          <a href="/?type=doc" class="nav-item">📄 Documents</a>
-          <a href="/?type=image" class="nav-item">🖼 Images</a>
+          <a href="/?type=all" class="nav-item <% if(isAllActive) { %>active<% } %>">📋 All</a>
+          <a href="/?type=doc" class="nav-item <% if(isDocActive) { %>active<% } %>">📄 Documents</a>
+          <a href="/?type=image" class="nav-item <% if(isImageActive) { %>active<% } %>">🖼 Images</a>
         </div>
 
         <div class="nav-section" style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e5e5;">
