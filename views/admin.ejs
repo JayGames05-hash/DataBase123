@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <main class="content">
+      <section class="card">
+        <h2>Admin Dashboard</h2>
+        <% if (error) { %>
+          <div class="alert"><%= error %></div>
+        <% } %>
+
+        <h3>Create User</h3>
+        <form method="post" action="/admin/users" class="stacked-form">
+          <label>Name
+            <input name="username" required />
+          </label>
+          <label>Email
+            <input type="email" name="email" required />
+          </label>
+          <label>Password
+            <input type="password" name="password" required />
+          </label>
+          <label>Role
+            <select name="role">
+              <option value="member">Member</option>
+              <option value="admin">Admin</option>
+            </select>
+          </label>
+          <button type="submit">Create User</button>
+        </form>
+
+        <h3>Existing Users</h3>
+        <div class="grid">
+          <% users.forEach(user => { %>
+            <div class="item">
+              <strong><%= user.username %></strong>
+              <span><%= user.email %></span>
+              <span>Role: <%= user.role %></span>
+            </div>
+          <% }) %>
+        </div>
+
+        <p><a href="/">Back to storage</a></p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

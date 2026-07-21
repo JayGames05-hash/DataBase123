@@ -271,11 +271,54 @@ app.get('/users', requireAuth, async (req, res) => {
       return res.status(403).send('Only admins can view the user list.');
     }
 
-    const result = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC');
+    const result = await pool.query('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC');
     res.render('users', { users: result.rows, error: null });
   } catch (error) {
     console.error(error);
     res.render('users', { users: [], error: error.message });
+  }
+});
+
+app.get('/admin', requireAuth, async (req, res) => {
+  try {
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).send('Only admins can access the admin dashboard.');
+    }
+
+    const result = await pool.query('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC');
+    res.render('admin', { users: result.rows, error: null });
+  } catch (error) {
+    console.error(error);
+    res.render('admin', { users: [], error: error.message });
+  }
+});
+
+app.post('/admin/users', requireAuth, async (req, res) => {
+  try {
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).send('Only admins can create users.');
+    }
+
+    const username = (req.body.username || '').trim().toLowerCase();
+    const email = (req.body.email || '').trim().toLowerCase();
+    const password = req.body.password || '';
+    const role = (req.body.role || 'member').trim();
+
+    if (!username || !email || !password) {
+      return res.redirect('/admin');
+    }
+
+    const existing = await pool.query('SELECT id FROM users WHERE username = $1 OR email = $2', [username, email]);
+    if (existing.rowCount > 0) {
+      return res.render('admin', { users: [], error: 'A user with that username or email already exists.' });
+    }
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await pool.query('INSERT INTO users (username, email, password_hash, role) VALUES ($1, $2, $3, $4)', [username, email, passwordHash, role]);
+    res.redirect('/admin');
+  } catch (error) {
+    console.error(error);
+    res.redirect('/admin');
   }
 });
 
