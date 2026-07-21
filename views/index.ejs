@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= siteName %></title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main>
+    <h1><%= siteName %></h1>
+    <p>Simple cloud storage with PostgreSQL, upload files, and control who can see them.</p>
+
+    <% if (user) { %>
+      <div class="actions">
+        <a href="/upload">Upload file</a>
+        <form action="/logout" method="post">
+          <button type="submit">Logout</button>
+        </form>
+      </div>
+    <% } else { %>
+      <div class="actions">
+        <a href="/login">Login</a>
+        <a href="/register">Register</a>
+      </div>
+    <% } %>
+
+    <% if (error) { %>
+      <p class="error"><%= error %></p>
+    <% } %>
+
+    <h2>Files</h2>
+    <% if (files.length === 0) { %>
+      <p>No files yet.</p>
+    <% } else { %>
+      <ul class="file-list">
+        <% files.forEach(file => { %>
+          <li>
+            <strong><%= file.title %></strong>
+            <span>by <%= file.owner_name %></span>
+            <span>visibility: <%= file.visibility %></span>
+            <a href="/files/<%= file.id %>">View</a>
+            <a href="/download/<%= file.id %>">Download</a>
+          </li>
+        <% }) %>
+      </ul>
+    <% } %>
+  </main>
+</body>
+</html>
