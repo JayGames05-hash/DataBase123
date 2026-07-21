@@ -175,12 +175,12 @@ app.get('/login', (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-  const username = (req.body.username || '').trim().toLowerCase();
+  const loginValue = (req.body.username || req.body.email || '').trim().toLowerCase();
   const password = req.body.password || '';
 
   try {
     await bootstrapDatabase();
-    const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+    const result = await pool.query('SELECT * FROM users WHERE username = $1 OR email = $2', [loginValue, loginValue]);
     const user = result.rows[0];
 
     if (!user) {
