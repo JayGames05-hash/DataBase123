@@ -49,8 +49,8 @@ async function initializeDatabase() {
 
   await pool.query(`ALTER TABLE files ADD COLUMN IF NOT EXISTS folder_id INT REFERENCES folders(id) ON DELETE SET NULL`);
 
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@cloudvault.local';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!';
+  const adminEmail = process.env.ADMIN_EMAIL || 'JayGames.05@outlook.com';
+  const adminPassword = process.env.ADMIN_PASSWORD || 'MichelH1!';
   const adminCheck = await pool.query('SELECT id FROM users WHERE role = $1', ['admin']);
 
   if (adminCheck.rowCount === 0) {
