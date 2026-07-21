@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 require('dotenv').config();
 
 const { pool, initializeDatabase } = require('./db');
+const { canAccessFile } = require('./permissions');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -28,36 +29,42 @@ const upload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-app.locals.siteName = 'Railway Storage';
+app.locals.siteName = 'Cloud Vault';
 
 let dbReady = false;
 let dbError = null;
+let dbInitializing = false;
+let dbInitPromise = null;
 
 async function bootstrapDatabase() {
-  try {
-    await initializeDatabase();
-    dbReady = true;
-  } catch (error) {
-    dbReady = false;
-    dbError = error.message;
-    console.error('Database initialization failed:', error.message);
-  }
-}
+  if (dbReady) return true;
+  if (dbInitializing) return dbInitPromise;
 
-bootstrapDatabase();
+  dbInitializing = true;
+  dbInitPromise = (async () => {
+    try {
+      await initializeDatabase();
+      dbReady = true;
+      dbError = null;
+      return true;
+    } catch (error) {
+      dbReady = false;
+      dbError = error.message;
+      console.error('Database initialization failed:', error.message);
+      return false;
+    } finally {
+      dbInitializing = false;
+    }
+  })();
+
+  return dbInitPromise;
+}
 
 function requireAuth(req, res, next) {
   if (!req.session.user) {
     return res.redirect('/login');
   }
   next();
-}
-
-function canAccessFile(file, user) {
-  if (!user) {
-    return file.visibility === 'public';
-  }
-  return file.visibility === 'public' || file.owner_id === user.id || user.role === 'admin';
 }
 
 app.use((req, res, next) => {
@@ -67,33 +74,58 @@ app.use((req, res, next) => {
 
 app.get('/', async (req, res) => {
   try {
+    await bootstrapDatabase();
+
     if (!dbReady) {
       return res.render('index', {
         files: [],
-        error: `Database is not ready yet. ${dbError || 'Set DATABASE_URL to a PostgreSQL instance and restart.'}`
+        folders: [],
+        currentFolder: null,
+        error: `Database connection is not ready. ${dbError || 'Set DATABASE_URL to a valid PostgreSQL connection string and restart the app.'}`
       });
     }
 
     const user = req.session.user || null;
-    let query = 'SELECT f.*, u.username AS owner_name FROM files f JOIN users u ON u.id = f.owner_id ORDER BY f.created_at DESC';
+    const folderId = req.query.folder ? Number(req.query.folder) : null;
 
-    if (user && user.role !== 'admin') {
-      query = 'SELECT f.*, u.username AS owner_name FROM files f JOIN users u ON u.id = f.owner_id WHERE f.visibility = $1 OR f.owner_id = $2 ORDER BY f.created_at DESC';
+    let currentFolder = null;
+    let folders = [];
+    let parentFolder = null;
+
+    if (user) {
+      if (folderId) {
+        const folderResult = await pool.query('SELECT * FROM folders WHERE id = $1 AND owner_id = $2', [folderId, user.id]);
+        currentFolder = folderResult.rows[0] || null;
+      }
+
+      const folderQuery = folderId ? 'SELECT * FROM folders WHERE owner_id = $1 AND parent_id = $2 ORDER BY name' : 'SELECT * FROM folders WHERE owner_id = $1 AND parent_id IS NULL ORDER BY name';
+      const folderValues = folderId ? [user.id, folderId] : [user.id];
+      const folderResult = await pool.query(folderQuery, folderValues);
+      folders = folderResult.rows;
+
+      if (currentFolder && currentFolder.parent_id) {
+        const parentResult = await pool.query('SELECT * FROM folders WHERE id = $1 AND owner_id = $2', [currentFolder.parent_id, user.id]);
+        parentFolder = parentResult.rows[0] || null;
+      }
     }
 
-    const values = user && user.role !== 'admin' ? ['public', user.id] : [];
-    const result = await pool.query(query, values);
-    const files = result.rows.filter((file) => canAccessFile(file, user));
+    const filesResult = await pool.query(
+      'SELECT f.*, u.username AS owner_name FROM files f JOIN users u ON u.id = f.owner_id ORDER BY f.created_at DESC'
+    );
 
-    res.render('index', { files, error: null });
+    const files = filesResult.rows
+      .filter((file) => canAccessFile(file, user))
+      .filter((file) => (folderId ? file.folder_id === folderId : file.folder_id === null));
+
+    res.render('index', { files, folders, currentFolder, parentFolder, error: null });
   } catch (error) {
     console.error(error);
-    res.render('index', { files: [], error: error.message });
+    res.render('index', { files: [], folders: [], currentFolder: null, parentFolder: null, error: error.message });
   }
 });
 
 app.get('/health', (req, res) => {
-  res.json({ ok: true, dbReady, error: dbError || null });
+  res.json({ ok: dbReady, databaseConfigured: Boolean(process.env.DATABASE_URL), dbReady, error: dbError || null });
 });
 
 app.get('/register', (req, res) => {
@@ -109,13 +141,17 @@ app.post('/register', async (req, res) => {
   }
 
   try {
+    await bootstrapDatabase();
     const existing = await pool.query('SELECT id FROM users WHERE username = $1', [username]);
     if (existing.rowCount > 0) {
       return res.render('register', { error: 'That username already exists.' });
     }
 
+    const usersCount = await pool.query('SELECT COUNT(*) AS count FROM users');
+    const role = Number(usersCount.rows[0].count) === 0 ? 'admin' : 'member';
     const passwordHash = await bcrypt.hash(password, 10);
-    await pool.query('INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)', [username, passwordHash, 'member']);
+
+    await pool.query('INSERT INTO users (username, password_hash, role) VALUES ($1, $2, $3)', [username, passwordHash, role]);
     res.redirect('/login');
   } catch (error) {
     console.error(error);
@@ -132,6 +168,7 @@ app.post('/login', async (req, res) => {
   const password = req.body.password || '';
 
   try {
+    await bootstrapDatabase();
     const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
     const user = result.rows[0];
 
@@ -158,34 +195,84 @@ app.post('/logout', (req, res) => {
   });
 });
 
-app.get('/upload', requireAuth, (req, res) => {
-  res.render('upload', { error: null });
+app.post('/folders', requireAuth, async (req, res) => {
+  try {
+    await bootstrapDatabase();
+    const name = (req.body.name || '').trim();
+    const parentId = req.body.parent_id ? Number(req.body.parent_id) : null;
+
+    if (!name) {
+      return res.redirect('/');
+    }
+
+    await pool.query('INSERT INTO folders (owner_id, name, parent_id) VALUES ($1, $2, $3)', [req.session.user.id, name, parentId]);
+    res.redirect(parentId ? `/?folder=${parentId}` : '/');
+  } catch (error) {
+    console.error(error);
+    res.redirect('/');
+  }
+});
+
+app.get('/upload', requireAuth, async (req, res) => {
+  try {
+    await bootstrapDatabase();
+    const result = await pool.query('SELECT * FROM folders WHERE owner_id = $1 ORDER BY name', [req.session.user.id]);
+    res.render('upload', { error: null, folders: result.rows, selectedFolder: req.query.folder || null });
+  } catch (error) {
+    console.error(error);
+    res.render('upload', { error: error.message, folders: [], selectedFolder: null });
+  }
 });
 
 app.post('/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
+    await bootstrapDatabase();
+
     if (!req.file) {
-      return res.render('upload', { error: 'Please choose a file to upload.' });
+      return res.render('upload', { error: 'Please choose a file to upload.', folders: [], selectedFolder: null });
     }
 
     const title = (req.body.title || req.file.originalname || 'Untitled').trim();
     const visibility = req.body.visibility || 'private';
+    const folderId = req.body.folder_id ? Number(req.body.folder_id) : null;
+
+    if (folderId) {
+      const folderResult = await pool.query('SELECT id FROM folders WHERE id = $1 AND owner_id = $2', [folderId, req.session.user.id]);
+      if (!folderResult.rows[0]) {
+        return res.render('upload', { error: 'That folder does not exist.', folders: [], selectedFolder: null });
+      }
+    }
 
     await pool.query(
-      `INSERT INTO files (owner_id, title, original_name, stored_name, mime_type, size, visibility, file_data)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-      [req.session.user.id, title, req.file.originalname, req.file.originalname, req.file.mimetype, req.file.size, visibility, req.file.buffer]
+      `INSERT INTO files (owner_id, folder_id, title, original_name, stored_name, mime_type, size, visibility, file_data)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [req.session.user.id, folderId, title, req.file.originalname, req.file.originalname, req.file.mimetype, req.file.size, visibility, req.file.buffer]
     );
 
-    res.redirect('/');
+    res.redirect(folderId ? `/?folder=${folderId}` : '/');
   } catch (error) {
     console.error(error);
-    res.render('upload', { error: error.message });
+    res.render('upload', { error: error.message, folders: [], selectedFolder: null });
+  }
+});
+
+app.get('/users', requireAuth, async (req, res) => {
+  try {
+    if (req.session.user.role !== 'admin') {
+      return res.status(403).send('Only admins can view the user list.');
+    }
+
+    const result = await pool.query('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC');
+    res.render('users', { users: result.rows, error: null });
+  } catch (error) {
+    console.error(error);
+    res.render('users', { users: [], error: error.message });
   }
 });
 
 app.get('/files/:id', async (req, res) => {
   try {
+    await bootstrapDatabase();
     const result = await pool.query('SELECT f.*, u.username AS owner_name FROM files f JOIN users u ON u.id = f.owner_id WHERE f.id = $1', [req.params.id]);
     const file = result.rows[0];
 
@@ -206,6 +293,7 @@ app.get('/files/:id', async (req, res) => {
 
 app.get('/download/:id', async (req, res) => {
   try {
+    await bootstrapDatabase();
     const result = await pool.query('SELECT * FROM files WHERE id = $1', [req.params.id]);
     const file = result.rows[0];
 

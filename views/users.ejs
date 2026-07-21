@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="shell">
+    <main class="content">
+      <section class="card">
+        <h2>Users</h2>
+        <% if (error) { %>
+          <div class="alert"><%= error %></div>
+        <% } %>
+        <div class="grid">
+          <% users.forEach(user => { %>
+            <div class="item">
+              <strong><%= user.username %></strong>
+              <span>Role: <%= user.role %></span>
+              <span>Created: <%= new Date(user.created_at).toLocaleString() %></span>
+            </div>
+          <% }) %>
+        </div>
+        <p><a href="/">Back to storage</a></p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

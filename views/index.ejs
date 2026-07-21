@@ -7,44 +7,97 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <main>
-    <h1><%= siteName %></h1>
-    <p>Simple cloud storage with PostgreSQL, upload files, and control who can see them.</p>
+  <div class="shell">
+    <aside class="sidebar">
+      <h1><%= siteName %></h1>
+      <p>Upload files, organize them into folders, and control who sees what.</p>
 
-    <% if (user) { %>
-      <div class="actions">
-        <a href="/upload">Upload file</a>
-        <form action="/logout" method="post">
-          <button type="submit">Logout</button>
-        </form>
-      </div>
-    <% } else { %>
-      <div class="actions">
-        <a href="/login">Login</a>
-        <a href="/register">Register</a>
-      </div>
-    <% } %>
+      <% if (user) { %>
+        <div class="card">
+          <h3>Welcome, <%= user.username %></h3>
+          <p>Role: <strong><%= user.role %></strong></p>
+          <div class="actions">
+            <a class="btn" href="/upload">Upload Files</a>
+            <% if (user.role === 'admin') { %>
+              <a class="btn secondary" href="/users">Manage Users</a>
+            <% } %>
+            <form method="post" action="/logout">
+              <button type="submit">Logout</button>
+            </form>
+          </div>
+        </div>
+      <% } else { %>
+        <div class="card">
+          <a class="btn" href="/login">Login</a>
+          <a class="btn secondary" href="/register">Create Account</a>
+        </div>
+      <% } %>
+    </aside>
 
-    <% if (error) { %>
-      <p class="error"><%= error %></p>
-    <% } %>
+    <main class="content">
+      <% if (error) { %>
+        <div class="alert"><%= error %></div>
+      <% } %>
 
-    <h2>Files</h2>
-    <% if (files.length === 0) { %>
-      <p>No files yet.</p>
-    <% } else { %>
-      <ul class="file-list">
-        <% files.forEach(file => { %>
-          <li>
-            <strong><%= file.title %></strong>
-            <span>by <%= file.owner_name %></span>
-            <span>visibility: <%= file.visibility %></span>
-            <a href="/files/<%= file.id %>">View</a>
-            <a href="/download/<%= file.id %>">Download</a>
-          </li>
-        <% }) %>
-      </ul>
-    <% } %>
-  </main>
+      <% if (user) { %>
+        <section class="card">
+          <h2>New Folder</h2>
+          <form method="post" action="/folders" class="inline-form">
+            <input name="name" placeholder="Folder name" required />
+            <% if (currentFolder) { %>
+              <input type="hidden" name="parent_id" value="<%= currentFolder.id %>" />
+            <% } %>
+            <button type="submit">Create</button>
+          </form>
+        </section>
+      <% } %>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Folders</h2>
+          <% if (parentFolder) { %>
+            <a href="/?folder=<%= parentFolder.id %>">Back</a>
+          <% } %>
+        </div>
+
+        <% if (folders.length === 0) { %>
+          <p>No folders yet.</p>
+        <% } else { %>
+          <div class="grid">
+            <% folders.forEach(folder => { %>
+              <a class="item" href="/?folder=<%= folder.id %>">📁 <%= folder.name %></a>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="card">
+        <div class="section-head">
+          <h2>Files</h2>
+          <% if (user) { %>
+            <a href="/upload">Upload</a>
+          <% } %>
+        </div>
+
+        <% if (files.length === 0) { %>
+          <p>No files in this folder.</p>
+        <% } else { %>
+          <div class="grid">
+            <% files.forEach(file => { %>
+              <div class="item file-item">
+                <strong><%= file.title %></strong>
+                <span><%= file.original_name %></span>
+                <span>Visibility: <%= file.visibility %></span>
+                <div class="mini-actions">
+                  <a href="/files/<%= file.id %>">View</a>
+                  <a href="/download/<%= file.id %>">Download</a>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </section>
+    </main>
+  </div>
 </body>
 </html>

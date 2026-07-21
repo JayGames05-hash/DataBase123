@@ -7,27 +7,39 @@
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <main>
-    <h1>Upload file</h1>
-    <% if (error) { %>
-      <p class="error"><%= error %></p>
-    <% } %>
-    <form method="post" action="/upload" enctype="multipart/form-data">
-      <label>Title
-        <input name="title" required />
-      </label>
-      <label>File
-        <input type="file" name="file" required />
-      </label>
-      <label>Visibility
-        <select name="visibility">
-          <option value="private">Private</option>
-          <option value="public">Public</option>
-        </select>
-      </label>
-      <button type="submit">Upload</button>
-    </form>
-    <p><a href="/">Back</a></p>
-  </main>
+  <div class="shell">
+    <main class="content">
+      <section class="card">
+        <h2>Upload a file</h2>
+        <% if (error) { %>
+          <div class="alert"><%= error %></div>
+        <% } %>
+        <form method="post" action="/upload" enctype="multipart/form-data" class="stacked-form">
+          <label>Title
+            <input name="title" required />
+          </label>
+          <label>File
+            <input type="file" name="file" required />
+          </label>
+          <label>Folder
+            <select name="folder_id">
+              <option value="">Root</option>
+              <% folders.forEach(folder => { %>
+                <option value="<%= folder.id %>" <%= selectedFolder && selectedFolder == folder.id ? 'selected' : '' %>><%= folder.name %></option>
+              <% }) %>
+            </select>
+          </label>
+          <label>Visibility
+            <select name="visibility">
+              <option value="private">Private</option>
+              <option value="public">Public</option>
+            </select>
+          </label>
+          <button type="submit">Upload</button>
+        </form>
+        <p><a href="/">Back</a></p>
+      </section>
+    </main>
+  </div>
 </body>
 </html>

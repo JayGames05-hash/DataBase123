@@ -18,9 +18,20 @@ async function initializeDatabase() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS folders (
+      id SERIAL PRIMARY KEY,
+      owner_id INT REFERENCES users(id) ON DELETE CASCADE,
+      name VARCHAR(255) NOT NULL,
+      parent_id INT REFERENCES folders(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT NOW()
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS files (
       id SERIAL PRIMARY KEY,
       owner_id INT REFERENCES users(id) ON DELETE CASCADE,
+      folder_id INT REFERENCES folders(id) ON DELETE SET NULL,
       title VARCHAR(255) NOT NULL,
       original_name VARCHAR(255) NOT NULL,
       stored_name VARCHAR(255) NOT NULL,
@@ -31,6 +42,8 @@ async function initializeDatabase() {
       created_at TIMESTAMP DEFAULT NOW()
     )
   `);
+
+  await pool.query(`ALTER TABLE files ADD COLUMN IF NOT EXISTS folder_id INT REFERENCES folders(id) ON DELETE SET NULL`);
 }
 
 module.exports = { pool, initializeDatabase };

@@ -1,10 +1,18 @@
-body { font-family: Arial, sans-serif; margin: 0; padding: 2rem; background: #f5f7fb; color: #1e293b; }
-main { max-width: 760px; margin: 0 auto; background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.08); }
-.actions { display: flex; gap: 1rem; margin: 1rem 0; }
-a, button { color: #0f766e; text-decoration: none; }
-button { background: #0f766e; color: white; border: none; padding: 0.6rem 1rem; border-radius: 8px; cursor: pointer; }
-label { display: block; margin-bottom: 0.8rem; }
-input, select { display: block; width: 100%; margin-top: 0.3rem; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; }
-.file-list { padding-left: 1rem; }
-.file-list li { margin-bottom: 0.7rem; }
-.error { color: #b91c1c; }
+body { font-family: Inter, Arial, sans-serif; margin: 0; background: linear-gradient(135deg, #0f172a, #111827); color: #e2e8f0; }
+.shell { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+.sidebar { background: rgba(15, 23, 42, 0.95); padding: 2rem; border-right: 1px solid rgba(255,255,255,0.08); }
+.content { padding: 2rem; }
+.card { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); border-radius: 16px; padding: 1.25rem; margin-bottom: 1rem; backdrop-filter: blur(10px); }
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+.btn, button, a { display: inline-block; background: #14b8a6; color: white; text-decoration: none; padding: 0.7rem 1rem; border-radius: 999px; border: none; cursor: pointer; }
+.btn.secondary { background: #475569; }
+button { font: inherit; }
+.inline-form, .stacked-form { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+.stacked-form { flex-direction: column; }
+input, select { display: block; width: 100%; padding: 0.75rem; border-radius: 10px; border: 1px solid #64748b; background: #0f172a; color: white; }
+.grid { display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.item { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.9rem; border-radius: 12px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); }
+.file-item { min-height: 120px; }
+.mini-actions { display: flex; gap: 0.5rem; margin-top: 0.3rem; }
+.section-head { display: flex; justify-content: space-between; align-items: center; }
+.alert { background: #7f1d1d; padding: 0.8rem 1rem; border-radius: 10px; margin-bottom: 1rem; }
