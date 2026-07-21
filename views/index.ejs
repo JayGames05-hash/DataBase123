@@ -84,9 +84,12 @@
             <h2>Folders</h2>
             <p>Navigate your collections</p>
           </div>
-          <% if (typeof parentFolder !== 'undefined' && parentFolder) { %>
-            <a class="plain-link" href="/?folder=<%= parentFolder.id %>">Back</a>
-          <% } %>
+          <div class="nav-links">
+            <a class="plain-link" href="/">Home</a>
+            <% if (typeof parentFolder !== 'undefined' && parentFolder) { %>
+              <a class="plain-link" href="/?folder=<%= parentFolder.id %>">Up one level</a>
+            <% } %>
+          </div>
         </div>
 
         <% if (folders.length === 0) { %>

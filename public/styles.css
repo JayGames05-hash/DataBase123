@@ -73,6 +73,7 @@ body {
 .section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
 .section-head h2 { margin: 0 0 4px; font-size: 1.05rem; }
 .section-head p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.nav-links { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .btn, button, a { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; border: none; cursor: pointer; }
 .btn, button {
