@@ -16,6 +16,8 @@
         <div class="card">
           <h3>Welcome, <%= user.username %></h3>
           <p>Role: <strong><%= user.role %></strong></p>
+          <p>Storage used: <strong><%= (storageStats && storageStats.used_bytes ? (storageStats.used_bytes / (1024 * 1024)).toFixed(2) : '0.00') %> MB</strong></p>
+          <p>Files: <strong><%= storageStats && storageStats.file_count ? storageStats.file_count : 0 %></strong></p>
           <div class="actions">
             <a class="btn" href="/upload">Upload Files</a>
             <% if (user.role === 'admin') { %>

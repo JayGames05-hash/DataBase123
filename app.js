@@ -117,10 +117,19 @@ app.get('/', async (req, res) => {
       .filter((file) => canAccessFile(file, user))
       .filter((file) => (folderId ? file.folder_id === folderId : file.folder_id === null));
 
-    res.render('index', { files, folders, currentFolder, parentFolder, error: null });
+    let storageStats = { usedBytes: 0, fileCount: 0 };
+    if (user) {
+      const storageResult = await pool.query(
+        'SELECT COALESCE(SUM(size), 0)::bigint AS used_bytes, COUNT(*)::int AS file_count FROM files WHERE owner_id = $1',
+        [user.id]
+      );
+      storageStats = storageResult.rows[0];
+    }
+
+    res.render('index', { files, folders, currentFolder, parentFolder, storageStats, error: null });
   } catch (error) {
     console.error(error);
-    res.render('index', { files: [], folders: [], currentFolder: null, parentFolder: null, error: error.message });
+    res.render('index', { files: [], folders: [], currentFolder: null, parentFolder: null, storageStats: { usedBytes: 0, fileCount: 0 }, error: error.message });
   }
 });
 
